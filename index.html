@@ -245,6 +245,117 @@
 
     .del-btn:hover { color: #dc2626; background: #fee2e2; }
 
+    /* Edit button */
+    .edit-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #d1d5db;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .edit-btn:hover { color: #6366f1; background: #ede9fe; }
+
+    /* Inline edit form */
+    .task-item.editing {
+      box-shadow: 0 0 0 2px #6366f1, 0 2px 12px rgba(99,102,241,0.15);
+    }
+
+    .edit-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+      align-items: center;
+    }
+
+    .edit-row input[type="text"] {
+      flex: 1 1 140px;
+      padding: 7px 10px;
+      font-size: 0.92rem;
+      border-radius: 8px;
+    }
+
+    .edit-row input[type="date"] {
+      padding: 7px 10px;
+      font-size: 0.88rem;
+      border-radius: 8px;
+    }
+
+    .edit-row select {
+      padding: 7px 10px;
+      font-size: 0.88rem;
+      border-radius: 8px;
+    }
+
+    .save-btn {
+      flex-shrink: 0;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .save-btn:hover { background: #4f46e5; }
+
+    /* Filter checkbox */
+    .filter-check-wrap {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .filter-check-wrap span {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #9ca3af;
+    }
+
+    .filter-check-wrap input[type="checkbox"] { display: none; }
+
+    .filter-check-wrap label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 2px solid #d1d5db;
+      cursor: pointer;
+      background: #fff;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .filter-check-wrap input:checked + label { background: #f59e0b; border-color: #f59e0b; }
+
+    .filter-check-wrap label::after {
+      content: '';
+      display: none;
+      width: 4px;
+      height: 7px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) translateY(-1px);
+    }
+
+    .filter-check-wrap input:checked + label::after { display: block; }
+
     /* Empty state */
     .empty {
       text-align: center;
@@ -405,6 +516,7 @@
     <button class="filter-btn" data-filter="active" onclick="setFilter('active', this)">Active</button>
     <button class="filter-btn" data-filter="done" onclick="setFilter('done', this)">Done</button>
     <button class="filter-btn" data-filter="high" onclick="setFilter('high', this)">🔴 High</button>
+    <button class="filter-btn" data-filter="actionable" onclick="setFilter('actionable', this)">⚡ Actionable</button>
     <select class="sort-select" onchange="setSort(this.value)">
       <option value="created">Sort: Added</option>
       <option value="date">Sort: Date</option>
@@ -457,6 +569,7 @@
       priority: document.getElementById('task-priority').value,
       date: document.getElementById('task-date').value,
       done: false,
+      filtered: false,
       created: Date.now()
     });
 
@@ -474,6 +587,40 @@
   function toggleDone(id) {
     const t = tasks.find(t => t.id === id);
     if (t) { t.done = !t.done; save(); render(); }
+  }
+
+  function toggleFiltered(id) {
+    const t = tasks.find(t => t.id === id);
+    if (t) { t.filtered = !t.filtered; save(); render(); }
+  }
+
+  // ---- Inline edit ----
+  let editingId = null;
+
+  function startEdit(id) {
+    editingId = id;
+    render();
+    document.getElementById(`edit-name-${id}`)?.focus();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    render();
+  }
+
+  function saveEdit(id) {
+    const nameEl = document.getElementById(`edit-name-${id}`);
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    const t = tasks.find(t => t.id === id);
+    if (t) {
+      t.name     = name;
+      t.priority = document.getElementById(`edit-priority-${id}`).value;
+      t.date     = document.getElementById(`edit-date-${id}`).value;
+    }
+    editingId = null;
+    save(); render();
+    showToast('Task updated.');
   }
 
   function deleteTask(id) {
@@ -524,9 +671,13 @@
     const list = document.getElementById('task-list');
 
     let visible = tasks;
-    if (filter === 'active') visible = tasks.filter(t => !t.done);
+    if (filter === 'active')     visible = tasks.filter(t => !t.done);
     else if (filter === 'done') visible = tasks.filter(t => t.done);
     else if (filter === 'high') visible = tasks.filter(t => t.priority === 'high' && !t.done);
+    else if (filter === 'actionable') {
+      const tod = new Date().toISOString().slice(0, 10);
+      visible = tasks.filter(t => !t.done && (!t.filtered || !t.date || t.date <= tod));
+    }
 
     visible = getSorted(visible);
 
@@ -543,7 +694,31 @@
     }
 
     list.innerHTML = visible.map(t => {
+      const isEditing = editingId === t.id;
       const overdue = !t.done && isOverdue(t.date);
+
+      if (isEditing) {
+        return `
+          <div class="task-item editing">
+            <div class="check-wrap">
+              <input type="checkbox" id="chk-${t.id}" ${t.done ? 'checked' : ''} onchange="toggleDone('${t.id}')">
+              <label for="chk-${t.id}"></label>
+            </div>
+            <div class="edit-row">
+              <input type="text" id="edit-name-${t.id}" value="${escHtml(t.name)}"
+                onkeydown="if(event.key==='Enter') saveEdit('${t.id}'); if(event.key==='Escape') cancelEdit();" />
+              <select id="edit-priority-${t.id}">
+                <option value="high"   ${t.priority==='high'   ? 'selected':''}>🔴 High</option>
+                <option value="medium" ${t.priority==='medium' ? 'selected':''}>🟡 Medium</option>
+                <option value="low"    ${t.priority==='low'    ? 'selected':''}>🟢 Low</option>
+              </select>
+              <input type="date" id="edit-date-${t.id}" value="${t.date || ''}" />
+              <button class="save-btn" onclick="saveEdit('${t.id}')">Save</button>
+            </div>
+            <button class="edit-btn" title="Cancel" onclick="cancelEdit()">✕</button>
+          </div>`;
+      }
+
       return `
         <div class="task-item${t.done ? ' done' : ''}">
           <div class="check-wrap">
@@ -557,6 +732,12 @@
               ${t.date ? `<span class="task-date${overdue ? ' overdue' : ''}">${overdue ? '⚠️ ' : '📅 '}${formatDate(t.date)}</span>` : ''}
             </div>
           </div>
+          <div class="filter-check-wrap">
+            <input type="checkbox" id="fil-${t.id}" ${t.filtered ? 'checked' : ''} onchange="toggleFiltered('${t.id}')">
+            <label for="fil-${t.id}"></label>
+            <span>filter</span>
+          </div>
+          <button class="edit-btn" title="Edit" onclick="startEdit('${t.id}')">✏️</button>
           <button class="del-btn" title="Delete" onclick="deleteTask('${t.id}')">✕</button>
         </div>`;
     }).join('');
