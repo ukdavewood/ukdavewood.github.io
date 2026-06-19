@@ -462,6 +462,10 @@
   function onPointerDown(e, pieceEl, shape, slotIndex){
     if(pieceEl.classList.contains('used')) return;
     e.preventDefault();
+    e.stopPropagation();
+
+    pieceEl.setPointerCapture(e.pointerId);
+
     const {cellSize} = getBoardMetrics();
     const unit = cellSize;
     const ghost = buildPieceElement(shape, unit);
@@ -472,8 +476,10 @@
     const offsetX = e.clientX - originRect.left;
     const offsetY = e.clientY - originRect.top;
 
-    const scaleFactor = unit / 26; // tray unit was 26
-    const liftOffsetY = unit * 1.4; // lift above finger so it's visible
+    const scaleFactor = unit / 26;
+    const liftOffsetY = unit * 1.4;
+
+    let lastX = e.clientX, lastY = e.clientY;
 
     function position(clientX, clientY){
       const x = clientX - offsetX * scaleFactor;
@@ -487,20 +493,29 @@
     dragState = {shape, slotIndex, ghost, offsetX, offsetY, scaleFactor, liftOffsetY, pieceEl};
 
     function onMove(ev){
-      position(ev.clientX, ev.clientY);
-      updatePreview(ev.clientX, ev.clientY);
+      ev.preventDefault();
+      lastX = ev.clientX;
+      lastY = ev.clientY;
+      position(lastX, lastY);
+      updatePreview(lastX, lastY);
     }
-    function onUp(ev){
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      handleDrop(ev.clientX, ev.clientY);
+    function cleanup(ev){
+      pieceEl.removeEventListener('pointermove', onMove);
+      pieceEl.removeEventListener('pointerup', cleanup);
+      pieceEl.removeEventListener('pointercancel', cleanup);
+      if(ev.type !== 'pointercancel'){
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+      }
+      handleDrop(lastX, lastY);
       ghost.remove();
       clearPreview();
       if(pieces[slotIndex]) pieceEl.style.visibility = 'visible';
       dragState = null;
     }
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    pieceEl.addEventListener('pointermove', onMove);
+    pieceEl.addEventListener('pointerup', cleanup);
+    pieceEl.addEventListener('pointercancel', cleanup);
   }
 
   function targetCellFromPoint(clientX, clientY, shape){
@@ -659,6 +674,11 @@
     const btn = e.currentTarget;
     btn.textContent = btn.textContent === '🔊' ? '🔇' : '🔊';
   });
+
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('touchmove', (e) => {
+    if(dragState) e.preventDefault();
+  }, {passive: false});
 
   buildBoardDOM();
   newGame();
