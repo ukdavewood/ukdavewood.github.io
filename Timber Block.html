@@ -15,6 +15,8 @@
     --bg-bottom: #a85a2a;
     --cream: #f3e3c0;
     --ink: #4a2a14;
+    --board-max: 500px;
+    --wrap-max: 560px;
   }
   * { box-sizing: border-box; }
   html,body{
@@ -30,17 +32,15 @@
     touch-action:none;
   }
   #wrap{
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  #wrap{
-    max-width:560px;
+    max-width:var(--wrap-max);
     margin:0 auto;
     padding:18px 14px 30px;
     display:flex;
     flex-direction:column;
     align-items:center;
     min-height:100vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   header{
     width:100%;
@@ -94,8 +94,8 @@
 
   #board{
     position:relative;
-    width: min(94vw, 500px);
-    height: min(94vw, 500px);
+    width: min(94vw, var(--board-max));
+    height: min(94vw, var(--board-max));
     background: linear-gradient(135deg, #7a3d22, #5c2e18);
     border-radius: 10px;
     box-shadow: inset 0 0 0 6px #4a2310, 0 10px 24px rgba(0,0,0,.35);
@@ -137,7 +137,7 @@
   }
 
   #tray{
-    width: min(94vw, 500px);
+    width: min(94vw, var(--board-max));
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -238,6 +238,35 @@
   @media (max-width: 380px){
     #scoreLine{ font-size:34px; }
     #title h1{ font-size:20px; }
+  }
+  @media (min-width: 700px){
+    :root{
+      --board-max: 620px;
+      --wrap-max: 680px;
+    }
+    .badge{ padding:10px 20px; }
+    .badge .crown{ font-size:24px; }
+    .badge .score{ font-size:24px; }
+    .icon-btn{ width:50px; height:50px; font-size:24px; border-radius:14px; }
+    #title h1{ font-size:32px; letter-spacing:4px; }
+    #scoreLine{ font-size:54px; }
+    #message{ font-size:17px; }
+    .panel{ max-width:400px; padding:36px 42px; }
+    .panel h2{ font-size:28px; }
+    .panel p{ font-size:17px; }
+    .panel button{ font-size:18px; padding:14px 32px; }
+  }
+  @media (min-width: 1000px){
+    :root{
+      --board-max: 740px;
+      --wrap-max: 800px;
+    }
+    .badge .crown{ font-size:28px; }
+    .badge .score{ font-size:28px; }
+    .icon-btn{ width:56px; height:56px; font-size:28px; }
+    #title h1{ font-size:38px; letter-spacing:5px; }
+    #scoreLine{ font-size:62px; }
+    #message{ font-size:19px; }
   }
 </style>
 </head>
@@ -408,13 +437,19 @@
     return {rows:maxR+1, cols:maxC+1};
   }
 
+  function getTrayUnit(){
+    const boardWidth = board.getBoundingClientRect().width;
+    return Math.round(boardWidth / 19);
+  }
+
   function renderTray(animate){
+    const unit = getTrayUnit();
     const slots = trayEl.querySelectorAll('.piece-slot');
     slots.forEach((slot, i) => {
       slot.innerHTML = '';
       const shape = pieces[i];
       if(!shape) return;
-      const pieceEl = buildPieceElement(shape, 26);
+      const pieceEl = buildPieceElement(shape, unit);
       pieceEl.dataset.slot = i;
       pieceEl.classList.add('piece');
       if(animate) pieceEl.classList.add('entering');
@@ -476,7 +511,7 @@
     const offsetX = e.clientX - originRect.left;
     const offsetY = e.clientY - originRect.top;
 
-    const scaleFactor = unit / 26;
+    const scaleFactor = unit / getTrayUnit();
     const liftOffsetY = unit * 1.4;
 
     let lastX = e.clientX, lastY = e.clientY;
@@ -675,6 +710,7 @@
     btn.textContent = btn.textContent === '🔊' ? '🔇' : '🔊';
   });
 
+  window.addEventListener('resize', () => { if(!dragState) renderTray(); });
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('touchmove', (e) => {
     if(dragState) e.preventDefault();
