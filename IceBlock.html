@@ -180,6 +180,7 @@
     filter: drop-shadow(0 8px 10px rgba(0,0,0,.4));
   }
   .piece.used{ visibility:hidden; }
+  .piece.blocked{ opacity: 0.4; filter: saturate(0.3); }
   .pblock{
     border-radius: 5px;
     background: linear-gradient(160deg, #daeefa, #a8d4f0 60%, #7bbde5);
@@ -494,10 +495,21 @@
     return {rect, cellSize};
   }
 
+  function abortDrag(){
+    if(!dragState) return;
+    const {ghost, pieceEl, slotIndex} = dragState;
+    ghost.remove();
+    clearPreview();
+    if(pieces[slotIndex]) pieceEl.style.visibility = 'visible';
+    dragState = null;
+  }
+
   function onPointerDown(e, pieceEl, shape, slotIndex){
     if(pieceEl.classList.contains('used')) return;
     e.preventDefault();
     e.stopPropagation();
+
+    if(dragState) abortDrag();
 
     pieceEl.setPointerCapture(e.pointerId);
 
@@ -507,25 +519,23 @@
     ghost.classList.add('piece','dragging');
     document.body.appendChild(ghost);
 
-    const originRect = pieceEl.getBoundingClientRect();
-    const offsetX = e.clientX - originRect.left;
-    const offsetY = e.clientY - originRect.top;
-
-    const scaleFactor = unit / getTrayUnit();
-    const liftOffsetY = unit * 1.4;
+    const {rows, cols} = shapeBounds(shape);
+    const ghostW = cols * unit + (cols - 1) * 2;
+    const ghostH = rows * unit + (rows - 1) * 2;
+    const anchorX = ghostW / 2;
+    const anchorY = ghostH / 2;
+    const liftOffsetY = unit * 0.8;
 
     let lastX = e.clientX, lastY = e.clientY;
 
     function position(clientX, clientY){
-      const x = clientX - offsetX * scaleFactor;
-      const y = clientY - offsetY * scaleFactor - liftOffsetY;
-      ghost.style.left = x + 'px';
-      ghost.style.top = y + 'px';
+      ghost.style.left = (clientX - anchorX) + 'px';
+      ghost.style.top = (clientY - anchorY - liftOffsetY) + 'px';
     }
     position(e.clientX, e.clientY);
     pieceEl.style.visibility = 'hidden';
 
-    dragState = {shape, slotIndex, ghost, offsetX, offsetY, scaleFactor, liftOffsetY, pieceEl};
+    dragState = {shape, slotIndex, ghost, anchorX, anchorY, liftOffsetY, pieceEl};
 
     function onMove(ev){
       ev.preventDefault();
@@ -555,11 +565,10 @@
 
   function targetCellFromPoint(clientX, clientY, shape){
     const {rect, cellSize} = getBoardMetrics();
-    // anchor point: top-left of the shape's bounding box in ghost, adjust by lift
-    const anchorX = clientX - dragState.offsetX*dragState.scaleFactor;
-    const anchorY = clientY - dragState.offsetY*dragState.scaleFactor - dragState.liftOffsetY;
-    const localX = anchorX - (rect.left + 4);
-    const localY = anchorY - (rect.top + 4);
+    const ghostLeft = clientX - dragState.anchorX;
+    const ghostTop = clientY - dragState.anchorY - dragState.liftOffsetY;
+    const localX = ghostLeft - (rect.left + 4);
+    const localY = ghostTop - (rect.top + 4);
     const col = Math.round(localX / (cellSize + CELL_GAP));
     const row = Math.round(localY / (cellSize + CELL_GAP));
     return {row, col};
@@ -677,15 +686,27 @@
     }
   }
 
+  function canFitAnywhere(shape){
+    for(let r=0;r<SIZE;r++)
+      for(let c=0;c<SIZE;c++)
+        if(canPlace(shape, r, c)) return true;
+    return false;
+  }
+
+  function markBlockedPieces(){
+    const slots = trayEl.querySelectorAll('.piece-slot');
+    slots.forEach((slot, i) => {
+      const el = slot.querySelector('.piece');
+      if(!el || !pieces[i]) return;
+      el.classList.toggle('blocked', !canFitAnywhere(pieces[i]));
+    });
+  }
+
   function checkGameOver(){
     const availableShapes = pieces.filter(p => p !== null);
     if(availableShapes.length === 0) return;
-    const anyFits = availableShapes.some(shape => {
-      for(let r=0;r<SIZE;r++)
-        for(let c=0;c<SIZE;c++)
-          if(canPlace(shape, r, c)) return true;
-      return false;
-    });
+    markBlockedPieces();
+    const anyFits = availableShapes.some(shape => canFitAnywhere(shape));
     if(!anyFits){
       finalScoreText.textContent = `Score: ${score}`;
       gameoverEl.classList.add('show');
@@ -711,6 +732,9 @@
   });
 
   window.addEventListener('resize', () => { if(!dragState) renderTray(); });
+  document.addEventListener('pointerup', () => {
+    if(dragState) setTimeout(() => { if(dragState) abortDrag(); }, 100);
+  });
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.addEventListener('touchmove', (e) => {
     if(dragState) e.preventDefault();
