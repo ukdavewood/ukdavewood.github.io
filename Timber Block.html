@@ -6,15 +6,15 @@
 <title>Timber Block</title>
 <style>
   :root{
-    --board-dark: #6b3322;
-    --board-mid: #8a4530;
-    --tile-light: #e8c27d;
-    --tile-light-edge: #c89a52;
-    --tile-shadow: #9a7338;
-    --bg-top: #c97b3d;
-    --bg-bottom: #a85a2a;
-    --cream: #f3e3c0;
-    --ink: #4a2a14;
+    --board-dark: #1a2a4a;
+    --board-mid: #243660;
+    --tile-light: #7db8e8;
+    --tile-light-edge: #5298d0;
+    --tile-shadow: #386a9a;
+    --bg-top: #3d7ac9;
+    --bg-bottom: #2a5aa8;
+    --cream: #e0eef8;
+    --ink: #142a4a;
     --board-max: 500px;
     --wrap-max: 560px;
   }
@@ -51,21 +51,21 @@
   }
   .badge{
     display:flex; align-items:center; gap:8px;
-    background: linear-gradient(180deg,#7a4426,#5c3019);
+    background: linear-gradient(180deg,#26447a,#19305c);
     border-radius:30px;
     padding:8px 16px;
-    box-shadow: 0 3px 0 #3e1f0c, inset 0 1px 0 rgba(255,255,255,0.15);
+    box-shadow: 0 3px 0 #0c1f3e, inset 0 1px 0 rgba(255,255,255,0.15);
   }
   .badge .crown{ font-size:20px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
   .badge .score{ color:var(--cream); font-weight:bold; font-size:20px; letter-spacing:.5px;}
   .icon-btn{
     width:42px; height:42px;
     border-radius:12px;
-    background: linear-gradient(180deg,#c97b3d,#a85a2a);
-    border: 2px solid #7a4426;
+    background: linear-gradient(180deg,#3d7ac9,#2a5aa8);
+    border: 2px solid #26447a;
     display:flex; align-items:center; justify-content:center;
     font-size:20px;
-    box-shadow: 0 3px 0 #5c3019;
+    box-shadow: 0 3px 0 #19305c;
     cursor:pointer;
   }
   .icon-group{ display:flex; gap:10px; }
@@ -79,7 +79,7 @@
     font-size: 26px;
     letter-spacing: 3px;
     color: var(--cream);
-    text-shadow: 0 2px 0 #5c3019, 0 0 16px rgba(0,0,0,.2);
+    text-shadow: 0 2px 0 #19305c, 0 0 16px rgba(0,0,0,.2);
     margin:0;
     text-transform: uppercase;
   }
@@ -87,7 +87,7 @@
     font-size: 44px;
     font-weight:bold;
     color: var(--cream);
-    text-shadow: 0 3px 0 #5c3019;
+    text-shadow: 0 3px 0 #19305c;
     margin-bottom: 14px;
     letter-spacing: 1px;
   }
@@ -96,9 +96,9 @@
     position:relative;
     width: min(94vw, var(--board-max));
     height: min(94vw, var(--board-max));
-    background: linear-gradient(135deg, #7a3d22, #5c2e18);
+    background: linear-gradient(135deg, #223d7a, #182e5c);
     border-radius: 10px;
-    box-shadow: inset 0 0 0 6px #4a2310, 0 10px 24px rgba(0,0,0,.35);
+    box-shadow: inset 0 0 0 6px #10234a, 0 10px 24px rgba(0,0,0,.35);
     display:grid;
     grid-template-columns: repeat(9, 1fr);
     grid-template-rows: repeat(9, 1fr);
@@ -113,10 +113,10 @@
   }
   .cell.box-alt{ background: var(--board-mid); }
   .cell.filled{
-    background: linear-gradient(160deg, #f3d699, #d9a857 60%, #c08c3d);
+    background: linear-gradient(160deg, #99d4f3, #57a8d9 60%, #3d8cc0);
     box-shadow:
       inset 0 2px 3px rgba(255,255,255,.55),
-      inset 0 -3px 4px rgba(95,60,15,.55),
+      inset 0 -3px 4px rgba(15,40,95,.55),
       0 1px 0 rgba(0,0,0,.2);
   }
   .cell.preview-ok{
@@ -182,10 +182,10 @@
   .piece.used{ visibility:hidden; }
   .pblock{
     border-radius: 5px;
-    background: linear-gradient(160deg, #f3d699, #d9a857 60%, #c08c3d);
+    background: linear-gradient(160deg, #99d4f3, #57a8d9 60%, #3d8cc0);
     box-shadow:
       inset 0 2px 3px rgba(255,255,255,.55),
-      inset 0 -3px 4px rgba(95,60,15,.55),
+      inset 0 -3px 4px rgba(15,40,95,.55),
       0 1px 1px rgba(0,0,0,.25);
   }
 
@@ -200,7 +200,7 @@
 
   #gameover{
     position:fixed; inset:0;
-    background: rgba(20,10,5,.72);
+    background: rgba(5,10,30,.72);
     display:none;
     align-items:center;
     justify-content:center;
@@ -208,7 +208,7 @@
   }
   #gameover.show{ display:flex; }
   .panel{
-    background: linear-gradient(160deg,#8a4a2a,#5c3019);
+    background: linear-gradient(160deg,#2a4a8a,#19305c);
     border-radius: 16px;
     padding: 30px 34px;
     text-align:center;
@@ -221,19 +221,19 @@
     margin: 0 0 6px;
     letter-spacing:1px;
   }
-  .panel p{ color:#e8c79a; margin: 4px 0 18px; font-size:15px; }
+  .panel p{ color:#9ac7e8; margin: 4px 0 18px; font-size:15px; }
   .panel button{
-    background: linear-gradient(180deg,#f3d699,#c08c3d);
+    background: linear-gradient(180deg,#99d4f3,#3d8cc0);
     border:none;
     border-radius: 10px;
     padding: 12px 26px;
     font-size: 16px;
     font-weight:bold;
-    color: #4a2a14;
+    color: #0e2244;
     cursor:pointer;
-    box-shadow: 0 4px 0 #8a6225;
+    box-shadow: 0 4px 0 #25628a;
   }
-  .panel button:active{ transform: translateY(2px); box-shadow:0 2px 0 #8a6225; }
+  .panel button:active{ transform: translateY(2px); box-shadow:0 2px 0 #25628a; }
 
   @media (max-width: 380px){
     #scoreLine{ font-size:34px; }
