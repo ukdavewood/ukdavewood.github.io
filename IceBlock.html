@@ -151,6 +151,10 @@
     align-items:center;
     justify-content:center;
     position:relative;
+    cursor:pointer;
+    touch-action:none;
+    -webkit-touch-callout:none;
+    padding: 10px;
   }
   .piece{
     display:inline-grid;
@@ -454,7 +458,6 @@
       pieceEl.dataset.slot = i;
       pieceEl.classList.add('piece');
       if(animate) pieceEl.classList.add('entering');
-      attachDrag(pieceEl, shape, i);
       slot.appendChild(pieceEl);
     });
   }
@@ -484,13 +487,21 @@
   // ---------- Drag logic ----------
   let dragState = null;
 
-  function attachDrag(pieceEl, shape, slotIndex){
-    pieceEl.addEventListener('pointerdown', (e) => onPointerDown(e, pieceEl, shape, slotIndex));
+  function initSlotListeners(){
+    trayEl.querySelectorAll('.piece-slot').forEach((slot, i) => {
+      slot.addEventListener('pointerdown', (e) => {
+        const shape = pieces[i];
+        if(!shape) return;
+        const pieceEl = slot.querySelector('.piece');
+        if(!pieceEl || pieceEl.classList.contains('used')) return;
+        onPointerDown(e, slot, pieceEl, shape, i);
+      });
+    });
   }
 
   function getBoardMetrics(){
     const rect = board.getBoundingClientRect();
-    const innerSize = rect.width - 8; // padding 4px each side
+    const innerSize = rect.width - 8;
     const cellSize = (innerSize - (SIZE-1)*CELL_GAP) / SIZE;
     return {rect, cellSize};
   }
@@ -504,14 +515,13 @@
     dragState = null;
   }
 
-  function onPointerDown(e, pieceEl, shape, slotIndex){
-    if(pieceEl.classList.contains('used')) return;
+  function onPointerDown(e, slot, pieceEl, shape, slotIndex){
     e.preventDefault();
     e.stopPropagation();
 
     if(dragState) abortDrag();
 
-    pieceEl.setPointerCapture(e.pointerId);
+    slot.setPointerCapture(e.pointerId);
 
     const {cellSize} = getBoardMetrics();
     const unit = cellSize;
@@ -545,9 +555,9 @@
       updatePreview(lastX, lastY);
     }
     function cleanup(ev){
-      pieceEl.removeEventListener('pointermove', onMove);
-      pieceEl.removeEventListener('pointerup', cleanup);
-      pieceEl.removeEventListener('pointercancel', cleanup);
+      slot.removeEventListener('pointermove', onMove);
+      slot.removeEventListener('pointerup', cleanup);
+      slot.removeEventListener('pointercancel', cleanup);
       if(ev.type !== 'pointercancel'){
         lastX = ev.clientX;
         lastY = ev.clientY;
@@ -558,9 +568,9 @@
       if(pieces[slotIndex]) pieceEl.style.visibility = 'visible';
       dragState = null;
     }
-    pieceEl.addEventListener('pointermove', onMove);
-    pieceEl.addEventListener('pointerup', cleanup);
-    pieceEl.addEventListener('pointercancel', cleanup);
+    slot.addEventListener('pointermove', onMove);
+    slot.addEventListener('pointerup', cleanup);
+    slot.addEventListener('pointercancel', cleanup);
   }
 
   function targetCellFromPoint(clientX, clientY, shape){
@@ -741,6 +751,7 @@
   }, {passive: false});
 
   buildBoardDOM();
+  initSlotListeners();
   newGame();
 })();
 </script>
