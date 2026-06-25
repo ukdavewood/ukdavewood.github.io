@@ -127,6 +127,10 @@
     background: linear-gradient(160deg, #e89a9a, #d96a6a 60%, #c14d4d);
     box-shadow: inset 0 2px 3px rgba(255,255,255,.4), inset 0 -3px 4px rgba(70,20,20,.4);
   }
+  .cell.preview-clear{
+    background: linear-gradient(160deg, #ffe9a0, #ffd24d 60%, #f0b820);
+    box-shadow: inset 0 2px 3px rgba(255,255,255,.6), inset 0 -3px 4px rgba(120,80,0,.3);
+  }
   .cell.clearing{
     animation: pop 0.35s ease forwards;
   }
@@ -597,19 +601,50 @@
     if(!dragState) return;
     clearPreview();
     const {row, col} = targetCellFromPoint(clientX, clientY, dragState.shape);
-    const ok = canPlace(dragState.shape, row, col);
-    dragState.shape.forEach(([dr,dc]) => {
+    const shape = dragState.shape;
+    const ok = canPlace(shape, row, col);
+    shape.forEach(([dr,dc]) => {
       const r = row+dr, c = col+dc;
       if(r>=0 && r<SIZE && c>=0 && c<SIZE){
         cellEls[r][c].classList.add(ok ? 'preview-ok' : 'preview-bad');
       }
+    });
+    if(!ok) return;
+    const placed = new Set(shape.map(([dr,dc]) => (row+dr)+','+(col+dc)));
+    const isFilled = (r,c) => grid[r][c] === 1 || placed.has(r+','+c);
+    const clearCells = new Set();
+    for(let r=0;r<SIZE;r++){
+      let full = true;
+      for(let c=0;c<SIZE;c++) if(!isFilled(r,c)){ full=false; break; }
+      if(full) for(let c=0;c<SIZE;c++) clearCells.add(r+','+c);
+    }
+    for(let c=0;c<SIZE;c++){
+      let full = true;
+      for(let r=0;r<SIZE;r++) if(!isFilled(r,c)){ full=false; break; }
+      if(full) for(let r=0;r<SIZE;r++) clearCells.add(r+','+c);
+    }
+    for(let br=0;br<3;br++){
+      for(let bc=0;bc<3;bc++){
+        let full = true;
+        for(let r=br*3;r<br*3+3;r++)
+          for(let c=bc*3;c<bc*3+3;c++)
+            if(!isFilled(r,c)){ full=false; }
+        if(full)
+          for(let r=br*3;r<br*3+3;r++)
+            for(let c=bc*3;c<bc*3+3;c++)
+              clearCells.add(r+','+c);
+      }
+    }
+    clearCells.forEach(key => {
+      const [r,c] = key.split(',').map(Number);
+      cellEls[r][c].classList.add('preview-clear');
     });
   }
 
   function clearPreview(){
     for(let r=0;r<SIZE;r++)
       for(let c=0;c<SIZE;c++)
-        cellEls[r][c].classList.remove('preview-ok','preview-bad');
+        cellEls[r][c].classList.remove('preview-ok','preview-bad','preview-clear');
   }
 
   function handleDrop(clientX, clientY){
